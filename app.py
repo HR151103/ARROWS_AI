@@ -1,14 +1,17 @@
 import streamlit as st
 import pandas as pd
 import chromadb
+import os
 
 from utils.parser import parse_resume
 from utils.embeddings import generate_embedding
 from utils.search import search_resumes
-from utils.jd_generator import generate_jd
 from utils.jd_match import match_jd
 from utils.dedup import deduplicate_resumes
-from utils.chatbot import recruiter_chat
+from utils.jd_generator import generate_jd
+
+# LANGCHAIN
+from utils.langchain_rag import *
 
 # =========================================================
 # PAGE CONFIG
@@ -19,11 +22,21 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("ARROWS AI Talent Intelligence Platform")
+st.title(
+    "ARROWS AI Talent Intelligence Platform"
+)
 
 st.write(
-    "AI-powered recruitment intelligence platform for semantic candidate retrieval, "
-    "resume parsing, JD matching, duplicate detection, and recruiter assistance."
+    "Enterprise AI-powered recruitment intelligence platform using RAG, semantic search, AI parsing, and recruiter assistance."
+)
+
+# =========================================================
+# CREATE TEMP FOLDER
+# =========================================================
+
+os.makedirs(
+    "temp",
+    exist_ok=True
 )
 
 # =========================================================
@@ -45,6 +58,7 @@ except:
     collection = client.create_collection(
         name="resume_collection"
     )
+
 # =========================================================
 # SESSION STATE
 # =========================================================
@@ -57,6 +71,10 @@ if "unique_resume_data" not in st.session_state:
 
     st.session_state.unique_resume_data = []
 
+if "qa_chain" not in st.session_state:
+
+    st.session_state.qa_chain = None
+
 # =========================================================
 # FILE UPLOAD
 # =========================================================
@@ -68,16 +86,32 @@ uploaded_files = st.file_uploader(
 )
 
 # =========================================================
-# PROCESS RESUMES
+# PROCESS FILES
 # =========================================================
 
 if uploaded_files:
 
     resume_data = []
 
+    all_chunks = []
+
     for file in uploaded_files:
 
         try:
+
+            # ============================================
+            # SAVE FILE TEMPORARILY
+            # ============================================
+
+            file_path = f"temp/{file.name}"
+
+            with open(file_path, "wb") as f:
+
+                f.write(file.getbuffer())
+
+            # ============================================
+            # PARSE RESUME
+            # ============================================
 
             parsed = parse_resume(file)
 
@@ -91,11 +125,37 @@ if uploaded_files:
 
             resume_data.append(parsed)
 
+            # ============================================
+            # LANGCHAIN DOCUMENT LOADING
+            # ============================================
+
+            documents = load_documents(
+                file_path
+            )
+
+            chunks = split_documents(
+                documents
+            )
+
+            all_chunks.extend(chunks)
+
         except Exception as e:
 
             st.error(
                 f"Error processing {file.name}: {e}"
             )
+
+    # =====================================================
+    # LANGCHAIN VECTOR STORE
+    # =====================================================
+
+    vectorstore = create_vectorstore(
+        all_chunks
+    )
+
+    qa_chain = create_rag_chain(
+        vectorstore
+    )
 
     # =====================================================
     # DEDUPLICATION
@@ -122,7 +182,7 @@ if uploaded_files:
     ]
 
     # =====================================================
-    # INDEX ONLY UNIQUE RESUMES
+    # STORE ONLY UNIQUE RESUMES
     # =====================================================
 
     for resume in unique_resume_data:
@@ -154,6 +214,10 @@ if uploaded_files:
         except:
             pass
 
+    # =====================================================
+    # SESSION STORAGE
+    # =====================================================
+
     st.session_state.resume_data = (
         resume_data
     )
@@ -174,12 +238,16 @@ if uploaded_files:
         unique_count
     )
 
+    st.session_state.qa_chain = (
+        qa_chain
+    )
+
     st.success(
         "Resumes Indexed Successfully"
     )
 
 # =========================================================
-# SESSION DATA
+# SESSION VALUES
 # =========================================================
 
 resume_data = st.session_state.get(
@@ -245,6 +313,7 @@ tab1, tab2, tab3, tab4, tab5, tab6 = st.tabs([
 
     "AI Recruiter Chatbot"
 ])
+
 # =========================================================
 # TAB 1 — DUPLICATE DETECTION
 # =========================================================
@@ -382,6 +451,10 @@ with tab2:
                     ", ".join(skills)
                 )
 
+            # =================================================
+            # PROJECTS
+            # =================================================
+
             projects = selected_data.get(
                 "projects",
                 []
@@ -393,9 +466,47 @@ with tab2:
 
                 for project in projects[:5]:
 
-                    st.write(
-                        f"- {project}"
-                    )
+                    if isinstance(project, dict):
+
+                        st.markdown("---")
+
+                        st.markdown(
+                            f"#### {project.get('project_name', 'Project')}"
+                        )
+
+                        skills_used = project.get(
+                            "skills_used",
+                            []
+                        )
+
+                        if skills_used:
+
+                            st.markdown(
+                                "**Skills Used**"
+                            )
+
+                            st.write(
+                                ", ".join(skills_used)
+                            )
+
+                        project_summary = project.get(
+                            "project_summary",
+                            ""
+                        )
+
+                        if project_summary:
+
+                            st.markdown(
+                                "**Project Summary**"
+                            )
+
+                            st.write(
+                                project_summary
+                            )
+
+                    else:
+
+                        st.write(project)
 
             certifications = selected_data.get(
                 "certifications",
@@ -414,36 +525,36 @@ with tab2:
                         f"- {cert}"
                     )
 
-            education = selected_data.get(
-                "education",
-                "Not Available"
-            )
-
             st.markdown("### Education")
 
-            st.write(education)
-
-            recommended_role = selected_data.get(
-                "recommended_role",
-                "Not Available"
+            st.write(
+                selected_data.get(
+                    "education",
+                    "Not Available"
+                )
             )
 
             st.markdown(
                 "### Recommended Role"
             )
 
-            st.write(recommended_role)
-
-            ai_summary = selected_data.get(
-                "ai_summary",
-                "AI summary not available."
+            st.write(
+                selected_data.get(
+                    "recommended_role",
+                    "Not Available"
+                )
             )
 
             st.markdown(
                 "### AI Candidate Summary"
             )
 
-            st.write(ai_summary)
+            st.write(
+                selected_data.get(
+                    "ai_summary",
+                    "AI summary not available."
+                )
+            )
 
 # =========================================================
 # TAB 3 — SEMANTIC SEARCH
@@ -471,7 +582,10 @@ with tab3:
             for candidate in results:
 
                 st.subheader(
-                    f"{candidate.get('file_name', 'Unknown Resume')}"
+                    candidate.get(
+                        "file_name",
+                        "Unknown Resume"
+                    )
                 )
 
                 st.markdown(
@@ -507,7 +621,7 @@ with tab3:
                 st.write(
                     candidate.get(
                         "reason",
-                        "Relevant candidate based on semantic retrieval."
+                        "Relevant profile identified using semantic retrieval."
                     )
                 )
 
@@ -518,6 +632,7 @@ with tab3:
             st.warning(
                 "No matching candidates found."
             )
+
 # =========================================================
 # TAB 4 — AI JD GENERATOR
 # =========================================================
@@ -626,7 +741,7 @@ with tab5:
             )
 
 # =========================================================
-# TAB 6 — AI RECRUITER CHATBOT
+# TAB 6 — LANGCHAIN RAG CHATBOT
 # =========================================================
 
 with tab6:
@@ -641,9 +756,23 @@ with tab6:
 
     if chat_query:
 
-        response = recruiter_chat(
-            chat_query,
-            unique_resume_data
+        qa_chain = st.session_state.get(
+            "qa_chain"
         )
 
-        st.markdown(response)
+        if qa_chain:
+
+            response = qa_chain.invoke({
+
+                "query": chat_query
+            })
+
+            st.markdown(
+                response["result"]
+            )
+
+        else:
+
+            st.warning(
+                "Please upload resumes first."
+            )
