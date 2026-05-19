@@ -1,88 +1,233 @@
-# ARROWS AI
+# ARROWS AI Talent Intelligence Platform
 
-AI Talent Intelligence Platform for resume search, JD matching, duplicate detection, and recruiter chatbot assistance.
+Enterprise AI-powered recruitment intelligence platform built using LangChain, RAG architecture, ChromaDB, semantic search, and LLM-based recruiter assistance.
 
-## What it does
+---
 
-- Semantic resume search using ChromaDB vector store and sentence-transformer embeddings
-- Resume upload and indexing pipeline
-- JD matching for comparing resumes against a job description
-- Duplicate resume detection and cleanup
-- AI recruiter chatbot with candidate ranking and hiring recommendation
-- Stable resume parsing with regex-based skills and experience extraction
+# Overview
 
-## Key features
+ARROWS AI is an intelligent recruitment intelligence platform designed to streamline candidate discovery, resume understanding, recruiter decision-making, and hiring workflows using Retrieval-Augmented Generation (RAG) and semantic AI technologies.
 
-- `utils/model_loader.py` centralizes model loading to avoid repeated large model initialization
-- `utils/embeddings.py` stores resume text embeddings in ChromaDB with filename metadata
-- `utils/search.py` performs semantic search and returns resume text plus filename from in-memory resume data
-- `utils/summary.py` extracts skills and experience from resume text reliably without external LLM dependencies
-- `utils/chatbot.py` ranks candidates, computes readiness, and generates recruiter-friendly responses
-- `utils/recommendation.py` provides hiring recommendations, best role, strengths, and risk areas
-- `app.py` provides Streamlit UI for uploading resumes, semantic search, JD match, dedup, and recruiter chatbot
+The platform enables recruiters to:
+- Upload and parse resumes
+- Remove duplicate resumes using semantic similarity
+- Perform semantic candidate search
+- Generate AI-assisted recruiter insights
+- Match candidates against Job Descriptions
+- Generate AI-based Job Descriptions
+- Interact with an AI Recruiter Chatbot powered by LangChain + RAG
 
-## Project structure
+---
 
-- `app.py` - Streamlit application entry point
-- `requirements.txt` - Python dependencies
-- `utils/`
-  - `embeddings.py` - store resume embeddings and manage vector DB
-  - `search.py` - semantic search logic
-  - `summary.py` - resume text parser for experience and skills
-  - `chatbot.py` - recruiter chatbot ranking and response generation
-  - `recommendation.py` - hiring recommendation engine
-  - `readiness.py` - readiness scoring logic
-  - `dedup.py` - duplicate resume detection
-  - `jd_match.py` - JD matching logic
-  - `parser.py` - resume text extraction logic for PDF/DOCX
-- `resumes/` - uploaded resume files
-- `chroma_db/` - local ChromaDB store
+# Key Features
 
-## Installation
+## Resume Parsing
+- Extracts:
+  - Candidate Name
+  - Experience
+  - Skills
+  - Projects
+  - Certifications
+  - Education
+  - Recommended Role
+  - AI-generated candidate summary
 
-1. Create or activate a Python environment (Python 3.13 recommended).
-2. Install dependencies:
+---
+
+## Resume Deduplication Engine
+- Detects duplicate resumes using semantic similarity
+- Prevents duplicate indexing
+- Ensures clean recruiter search results
+
+---
+
+## Semantic Candidate Search
+- Uses embeddings + vector similarity search
+- Retrieves candidates based on meaning rather than keywords
+- Supports role-based intelligent retrieval
+
+---
+
+## AI Job Description Generator
+- Generates enterprise-grade job descriptions using LLMs
+- Creates role-specific hiring requirements
+
+---
+
+## JD Match Engine
+- Matches resumes against Job Descriptions
+- Generates:
+  - Match percentage
+  - Skill alignment
+  - Experience relevance
+  - Recruiter insights
+
+---
+
+## AI Recruiter Chatbot (RAG)
+Built using:
+- LangChain
+- ChromaDB
+- HuggingFace Embeddings
+- Groq LLM
+- RetrievalQA Chain
+
+The chatbot:
+- Understands recruiter queries
+- Retrieves contextual resume intelligence
+- Generates recruiter-focused AI responses
+
+---
+
+# Tech Stack
+
+| Technology | Purpose |
+|---|---|
+| Python | Backend |
+| Streamlit | Web Application |
+| LangChain | RAG Framework |
+| ChromaDB | Vector Database |
+| HuggingFace Embeddings | Semantic Embeddings |
+| Groq LLM | AI Reasoning |
+| Sentence Transformers | Embedding Generation |
+| Scikit-learn | Similarity Detection |
+| Pandas | Data Handling |
+
+---
+
+# RAG Architecture
+
+```text
+Recruiter Query
+        ↓
+Embedding Generation
+        ↓
+Vector Similarity Retrieval
+        ↓
+LangChain Retriever
+        ↓
+Relevant Resume Chunks
+        ↓
+LLM Context Injection
+        ↓
+AI Recruiter Response
+```
+
+---
+
+# Project Workflow
+
+```text
+Resume Upload
+        ↓
+Duplicate Detection
+        ↓
+AI Resume Parsing
+        ↓
+Semantic Candidate Search
+        ↓
+AI JD Generation
+        ↓
+JD Match Engine
+        ↓
+AI Recruiter Chatbot
+```
+
+---
+
+# Installation
+
+## Clone Repository
+
+```bash
+git clone https://github.com/HR151103/ARROWS_AI.git
+```
+
+---
+
+## Navigate to Project
+
+```bash
+cd ARROWS_AI
+```
+
+---
+
+## Install Dependencies
 
 ```bash
 pip install -r requirements.txt
 ```
 
-3. If you installed packages manually, verify `chromadb`, `sentence-transformers`, and `streamlit` are available.
+---
 
-## How to run
-
-1. Delete and recreate `chroma_db/` before uploading fresh resumes if the DB contains stale metadata.
-2. Start the app:
+# Run Application
 
 ```bash
-python -m streamlit run app.py
+streamlit run app.py
 ```
 
-3. Open the local Streamlit URL shown in your terminal.
-4. Upload resumes and use the tabs:
-   - `Semantic Search` to search candidate resumes by query
-   - `JD Match Engine` to compare resumes against a job description
-   - `Duplicate Detection` to find and remove resume duplicates
-   - `AI Recruiter Chatbot` to generate ranked candidate guidance
+---
 
-## Recommended workflow
+# Environment Variables
 
-1. Upload resume files (`.pdf` or `.docx`).
-2. Ensure the vector database is fresh by deleting `chroma_db/` and recreating the folder if needed.
-3. Use Semantic Search for recruiter-style candidate retrieval.
-4. Use the AI Recruiter Chatbot for ranking and hiring recommendations.
+Create `.env` file:
 
-## Notes
+```env
+GROQ_API_KEY=your_api_key
+```
 
-- The current parser in `utils/summary.py` uses a stable regex-based method to avoid unstable LLM dependencies.
-- The chatbot and search UI use resume filenames directly for clean candidate names.
-- The project emphasizes stability and recruiter-focused output for demo readiness.
+---
 
-## Troubleshooting
+# Example Recruiter Queries
 
-- If search results show `Unknown` names, confirm `resume_data` is being passed into search and that uploaded files are stored successfully.
-- If Streamlit crashes on app start, ensure all dependencies are installed and no old Lock files or stale `chroma_db/` objects remain.
+```text
+Who fits Data Engineer roles?
 
-## License
+Who has Azure Data Factory experience?
 
-This repository is for internal demo and development use. Adapt as needed for your hiring intelligence workflow.
+Find candidates with Spark and Kafka expertise.
+
+Who worked on ETL migration projects?
+
+Which candidate has cloud engineering exposure?
+
+Generate recruiter insights for backend developers.
+```
+
+---
+
+# Enterprise AI Capabilities
+
+- Retrieval-Augmented Generation (RAG)
+- Semantic Resume Intelligence
+- AI Recruiter Assistance
+- Context-Aware Candidate Retrieval
+- Resume Knowledge Search
+- LLM-based Candidate Reasoning
+
+---
+
+# Future Enhancements
+
+- Hybrid RAG Search
+- Candidate Comparison Dashboard
+- AI Interview Question Generator
+- Skill Gap Analysis
+- Multi-Agent Recruiter AI
+- Recruiter Conversation Memory
+- ATS Integration
+- Analytics Dashboard
+
+---
+
+# Author
+
+Hrithik AR
+
+
+---
+
+# License
+
+This project is intended for educational, research, and enterprise innovation purposes.
