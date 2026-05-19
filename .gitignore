@@ -1,4 +1,6 @@
+__pycache__/
 .env
 chroma_db/
-__pycache__/
+langchain_chroma_db/
+temp/
 *.pyc
